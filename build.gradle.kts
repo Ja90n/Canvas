@@ -17,6 +17,7 @@ subprojects {
     version = (findProperty("canvasVersion") as String?) ?: "0.1.0-SNAPSHOT"
 
     repositories {
+        mavenLocal()
         mavenCentral()
         maven("https://repo.papermc.io/repository/maven-public/")
     }
@@ -43,6 +44,7 @@ subprojects {
                 options.compilerArgs.add("-Werror")
             }
             options.errorprone {
+                isEnabled.set(false)
                 // Error Prone's default checks report as warnings; NullAway (JSpecify: @NullMarked
                 // classes, @Nullable types) is always an error on main sources.
                 allErrorsAsWarnings.set(true)

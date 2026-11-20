@@ -13,6 +13,7 @@ include(
     "canvas-pack",
     "canvas-elements",
     "canvas-paper",
+    "canvas-minestom",
     "canvas-kitchensink",
     "canvas-codegen",
 )

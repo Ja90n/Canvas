@@ -1,129 +1,81 @@
-# Canvas
+# Canvas (Minestom & Paper)
 
-Stateful, layout-driven UIs inside Minecraft Java dialogs (Paper 26.3). No client mods: every screen is drawn with
-glyphs from a resource pack Canvas generates.
+Canvas is a reactive, declarative UI framework for Minecraft's new **Dialog API** (introduced in modern Minecraft versions). It allows developers to build rich, native dialog interfaces using a modern component model (similar to React/Flutter) with state hooks, flexbox/absolute layouts, custom themes, and native inputs.
 
-<p align="center">
-  <img src="assets/showcase_3.png" width="480" alt="A settings screen with tabs, a dropdown, toggles, steppers and a slider">
-</p>
+---
 
-```java
-public class SettingsScreen implements NodeLike {
+## 🚀 Modules
 
-    public static void open(final Player player) {
-        new Canvas(new SettingsScreen()).open(player);
-    }
+- **`canvas-api`**: Core declarative interfaces (`Canvas`, `Node`, `State`, `Theme`, `Component`).
+- **`canvas-core`**: Layout engine, rendering pipelines, glyph compiler, and session management.
+- **`canvas-pack`**: Resource pack generation for custom UI sprites and glyph atlases.
+- **`canvas-elements`**: Built-in UI elements (Button, Text, Panel, Segmented, Tabs, Toggle, Slider, Dropdown, etc.).
+- **`canvas-minestom`**: Native **Minestom** platform adapter (`MinestomPlatform`, `DialogAdapter`, `CanvasListener`, `CanvasRuntime`).
+- **`canvas-paper`**: **Paper** platform adapter for Bukkit/Paper/Folia servers.
 
-    @Override
-    public Node getNode(final Scope scope) {
-        final State<Boolean> moving = scope.useState(false);
-        return Panel.builder()
-            .title("Visuals")
-            .add(SettingRow.builder().label("Moving background").control(Toggle.of(moving)).build())
-            .build();
-    }
-}
+---
+
+## 📦 Using in Minestom
+
+### 1. Dependency
+
+Add `canvas-minestom` to your `pom.xml`:
+
+```xml
+<dependency>
+    <groupId>me.chubbyduck</groupId>
+    <artifactId>canvas-minestom</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+</dependency>
 ```
 
-## Install
-
-Canvas is published through [JitPack](https://jitpack.io/#Chubbyduck1/Canvas). Use a release tag (or a commit hash)
-as the version:
-
-[![](https://jitpack.io/v/Chubbyduck1/Canvas.svg)](https://jitpack.io/#Chubbyduck1/Canvas)
-
-```kotlin
-repositories {
-    maven("https://jitpack.io")
-}
-
-dependencies {
-    compileOnly("com.github.Chubbyduck1.Canvas:canvas-paper:<tag>")
-}
-```
-
-**As a plugin:** download `Canvas.jar` from [Releases](https://github.com/Chubbyduck1/Canvas/releases) into
-`plugins/`, add `depend: [Canvas]` to your `plugin.yml`, keep the dependency `compileOnly`, and register your own
-nodes in `onEnable`:
-
-```java
-public class MyPlugin extends JavaPlugin {
-
-    @Override
-    public void onEnable() {
-        CanvasRuntime.get().register(MyNode.class);
-    }
-}
-```
-
-**Shaded:** depend on it with `implementation` and shade it with [Shadow](https://gradleup.com/shadow/). Relocate
-Canvas and leave out what Paper already provides:
+Or in Gradle:
 
 ```kotlin
 dependencies {
-    implementation("com.github.Chubbyduck1.Canvas:canvas-paper:<tag>")
-}
-
-tasks.shadowJar {
-    relocate("me.chubbyduck.canvas", "com.example.myplugin.libs.canvas")
-    dependencies {
-        exclude(dependency("net.kyori:.*"))
-        exclude(dependency("com.google.code.gson:.*"))
-        exclude(dependency("org.jetbrains:annotations"))
-        exclude(dependency("org.jspecify:jspecify"))
-    }
+    implementation("me.chubbyduck:canvas-minestom:0.1.0-SNAPSHOT")
 }
 ```
 
-Then start it yourself in `onEnable` (don't also install the Canvas plugin):
+### 2. Bootstrap Runtime
+
+In your Minestom server startup (e.g. `main` or server initialization):
 
 ```java
-public class MyPlugin extends JavaPlugin {
+import me.chubbyduck.canvas.minestom.CanvasRuntime;
+import me.chubbyduck.canvas.elements.Themes;
 
-    @Override
-    public void onEnable() {
-        CanvasRuntime.bootstrap(this).register(Nodes.defaults()).register(MyNode.class).start();
-    }
-}
+// Initializes Canvas runtime and binds to Minestom's GlobalEventHandler
+CanvasRuntime runtime = CanvasRuntime.bootstrap(Path.of("canvas"))
+    .registerTheme(Themes.ORE)
+    .start();
 ```
 
-Canvas writes its resource pack to `plugins/<plugin>/pack.zip` and logs its SHA-1. Host it (or merge it into your
-server pack) and send it to players.
-
-`plugins/Canvas/config.yml`:
-
-| Option         | Default | Effect                                                                                    |
-|----------------|---------|-------------------------------------------------------------------------------------------|
-| `require-pack` | `false` | `true`: plain dialogs until a resource pack has loaded (`.requirePack(true)` when shaded) |
-| `metrics`      | `true`  | Anonymous usage statistics on [bStats](https://bstats.org)                                |
-
-## Text fonts and widths
-
-Unknown glyphs are measured as 5 pixels, including the spacing pixel. This can be wrong, and if it is, it will offset
-the entire dialog. Simply register an override for it!
+### 3. Open a Canvas Dialog
 
 ```java
-CanvasApi.registerFontWidth(Key.key("myplugin", "icons"), 0xE100,12);
-CanvasApi.registerFontWidth(Key.key("minecraft", "default"), '\u6F22',9);
-Component icon = Component.text("\uE100").font(Key.key("myplugin", "icons"));
+import me.chubbyduck.canvas.Canvas;
+import me.chubbyduck.canvas.elements.Button;
+import me.chubbyduck.canvas.elements.Text;
+import me.chubbyduck.canvas.elements.Panel;
+import net.kyori.adventure.text.Component;
+import net.minestom.server.entity.Player;
+
+// Construct and open a reactive canvas:
+new Canvas(
+    new Panel(
+        new Text("Welkom bij NLPVP!"),
+        new Button(Component.text("Sluiten"), session -> session.close())
+    )
+).open(player);
 ```
 
-## Build
+---
 
-`./gradlew build` builds every module and `canvas-paper/build/libs/Canvas-<version>.jar`.
-`./gradlew runServer` starts a test server with the example plugin (`/ks`).
-It stages both plugin jars in `canvas-kitchensink/build/run-plugins` before launch, so rebuilding while the server
-is running does not overwrite its loaded jars. Restart `runServer` to pick up a new build.
+## 🛠 Building & Publishing
 
-## Notice
+To build all modules and publish to your local Maven repository (`~/.m2/repository`):
 
-Canvas is not affiliated with or endorsed by Mojang Studios or Microsoft. Minecraft is a trademark of Mojang
-Studios. The generated pack reuses the vanilla font by reference (no Mojang assets are shipped) and includes an
-optional `core/gui` shader derived from vanilla's, which hides the dialog focus outline.
-
-The project was partially generated with Claude Opus 5.5. My reasoning was as follows: Just wanted to make it work, can
-make it pretty later :)
-
-## License
-
-[MIT](LICENSE)
+```bash
+./gradlew publishToMavenLocal
+```
